@@ -8,7 +8,7 @@ customers. In the database these are ``Ticket.opened_at`` and
 ``Customer.customer_since``, so the schemas map them with a validation alias.
 """
 from datetime import date, datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -92,6 +92,14 @@ class TriageOut(BaseModel):
     run_id: str | None
 
 
+class TriageData(TriageOut):
+    """Result of a triage run. A guardrail flag is shown so nothing is hidden from the reviewer."""
+
+    ticket_id: str
+    guardrail_flagged: bool
+    guardrail_reasons: list[str]
+
+
 class TicketListItem(TicketOut):
     triage: TriageOut | None = None
 
@@ -119,6 +127,99 @@ class TicketDetailData(BaseModel):
     order: OrderOut | None
     latest_triage: TriageOut | None
     latest_draft: DraftOut | None
+
+
+# ---- drafts ---------------------------------------------------------------
+
+
+class RecommendedActionOut(BaseModel):
+    tool_name: str
+    requires_human_approval: bool
+    reason: str
+
+
+class DraftReplyData(BaseModel):
+    """A stored reply. A guardrail flag is shown so nothing is hidden from the reviewer."""
+
+    draft_id: str
+    ticket_id: str
+    status: str
+    body: str
+    citations: list[str]
+    recommended_actions: list[RecommendedActionOut]
+    needs_escalation: bool
+    guardrail_flagged: bool
+    guardrail_reasons: list[str]
+    run_id: str
+
+
+# ---- tool actions ---------------------------------------------------------
+
+
+class ToolActionCreateRequest(BaseModel):
+    ticket_id: str = Field(max_length=64)
+    tool_name: str = Field(min_length=1, max_length=64)
+    payload: dict[str, Any]
+
+
+class ToolActionApproveRequest(BaseModel):
+    decision: Literal["approved", "rejected"]
+    reason: str = Field(default="", max_length=1000)
+
+
+class ApprovalOut(BaseModel):
+    reviewer_id: str
+    decision: str
+    reason: str
+    created_at: datetime
+
+
+class ToolActionData(BaseModel):
+    """``run_id`` is the audit row of this call; it is empty when nothing changed (``replayed``)."""
+
+    action_id: str
+    ticket_id: str
+    tool_name: str
+    payload: dict[str, Any]
+    risk_level: str
+    requires_human_approval: bool
+    status: str
+    idempotency_key: str
+    result: dict[str, Any] | None
+    created_at: datetime
+    approval: ApprovalOut | None
+    run_id: str | None
+    replayed: bool
+
+
+# ---- eval runs ------------------------------------------------------------
+
+
+class EvalRunRequest(BaseModel):
+    case_ids: list[str] | None = Field(default=None, min_length=1, max_length=50)
+
+
+class EvalRunData(BaseModel):
+    eval_run_id: str
+    started_at: str
+    completed_at: str | None
+    total_cases: int
+    metrics: dict[str, Any]
+    case_results: list[dict[str, Any]]
+
+
+# ---- agent runs -----------------------------------------------------------
+
+
+class AgentRunOut(OrmSchema):
+    run_id: str = Field(validation_alias="uuid")
+    ticket_id: str | None
+    run_type: str
+    status: str
+    retrieved_doc_ids: list[str]
+    tool_calls: list[Any]
+    guardrail_results: dict[str, Any]
+    created_at: datetime
 
 
 # ---- documents ------------------------------------------------------------
@@ -154,6 +255,15 @@ class DocumentSearchResult(BaseModel):
     heading: str
     snippet: str
     score: float
+    audience: str
+
+
+class DocumentOut(OrmSchema):
+    """What a citation shows. The text is left out, as this is for labelling a citation."""
+
+    doc_id: str
+    title: str
+    version: str
     audience: str
 
 

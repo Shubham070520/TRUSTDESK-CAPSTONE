@@ -70,6 +70,10 @@ class ToolExecutionError(AppException):
     DEFAULT_CODE = ErrorCode.TOOL_EXECUTION
 
 
+class ToolNotEnabledError(AppException):
+    DEFAULT_CODE = ErrorCode.TOOL_NOT_ENABLED
+
+
 class ProviderError(AppException):
     DEFAULT_CODE = ErrorCode.PROVIDER
 

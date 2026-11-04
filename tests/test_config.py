@@ -15,10 +15,25 @@ class TestConfig:
 
     def test_load_reads_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("MODEL_PROVIDER", "GROQ")
+        monkeypatch.setenv("MODEL_API_KEY", "key-123")
+        monkeypatch.setenv("MODEL_NAME", " my-model ")
         monkeypatch.setenv("TRUSTDESK_TOKEN", "abc")
         config = Config.load()
         assert config.model_provider == "groq"
+        assert config.model_api_key == "key-123"
+        assert config.model_name == "my-model"
         assert config.token == "abc"
+
+    @pytest.mark.parametrize("provider", ["groq", "gemini"])
+    def test_hosted_provider_requires_api_key(self, provider: str) -> None:
+        for key in ("", "   "):
+            with pytest.raises(ValueError, match="MODEL_API_KEY"):
+                Config(token="t", db_path="x.db", model_provider=provider, model_api_key=key)
+
+    def test_mock_provider_needs_no_key_and_model_name_defaults_empty(self) -> None:
+        config = Config(token="t", db_path="x.db", model_provider="mock")
+        assert config.model_api_key == ""
+        assert config.model_name == ""
 
     def test_rejects_unknown_provider(self) -> None:
         with pytest.raises(ValueError):

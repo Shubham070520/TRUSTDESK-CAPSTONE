@@ -15,6 +15,7 @@ class ErrorCode(IntEnum):
     PROVIDER = 1008
     METHOD_NOT_ALLOWED = 1009
     DATABASE = 1010
+    TOOL_NOT_ENABLED = 1011
 
 
 class ErrorConfig:
@@ -30,6 +31,7 @@ class ErrorConfig:
         ErrorCode.PROVIDER: "AI provider failed or timed out",
         ErrorCode.METHOD_NOT_ALLOWED: "Method not allowed",
         ErrorCode.DATABASE: "Database is unavailable",
+        ErrorCode.TOOL_NOT_ENABLED: "This tool is not enabled in this build",
     }
 
     HTTP_STATUS: ClassVar[dict[ErrorCode, int]] = {
@@ -44,6 +46,7 @@ class ErrorConfig:
         ErrorCode.PROVIDER: 504,
         ErrorCode.METHOD_NOT_ALLOWED: 405,
         ErrorCode.DATABASE: 503,
+        ErrorCode.TOOL_NOT_ENABLED: 403,
     }
 
     # Maps raw HTTP statuses raised by the framework onto our codes.

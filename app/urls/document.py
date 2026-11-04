@@ -7,6 +7,7 @@ from app.common.document_parser import KnowledgeDocumentParser
 from app.common.schema import (
     DocumentIngestData,
     DocumentIngestRequest,
+    DocumentOut,
     DocumentSearchData,
     Envelope,
 )
@@ -37,12 +38,27 @@ class DocumentRouter(BaseRouter):
             summary="Ingest one or more knowledge documents (ids are preserved)",
         )
 
+        # Declared after the fixed paths above, so it cannot capture them.
+        self._router.add_api_route(
+            "/{doc_id}",
+            self._get,
+            methods=["GET"],
+            status_code=HTTPStatus.OK,
+            response_model=Envelope[DocumentOut],
+            dependencies=self._secured(),
+            summary="Title and metadata of one document, to label a citation",
+        )
+
     def _build_handler(self, db: Session) -> DocumentHandler:
         return DocumentHandler(DocumentHelper(db), KnowledgeDocumentParser(), self._logger)
 
     def _search(self, q: str = "", k: int = Config.DEFAULT_SEARCH_K) -> Any:
         with self._database.session_scope() as db:
             return self._build_handler(db).search(q, k)
+
+    def _get(self, doc_id: str) -> Any:
+        with self._database.session_scope() as db:
+            return self._build_handler(db).get_document(doc_id)
 
     def _ingest(self, body: DocumentIngestRequest) -> Any:
         with self._database.session_scope() as db:

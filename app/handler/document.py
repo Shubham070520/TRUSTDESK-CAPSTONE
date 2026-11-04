@@ -10,6 +10,7 @@ from app.common.schema import (
     DocumentIngestData,
     DocumentIngestRequest,
     DocumentIngestResultItem,
+    DocumentOut,
     DocumentSearchData,
     DocumentSearchResult,
 )
@@ -31,6 +32,9 @@ class DocumentHandler(BaseHandler):
 
     def search(self, query: str, k: int) -> JSONResponse:
         return self.execute(partial(self._search, query, k), SuccessConfig.DOCUMENTS_SEARCHED)
+
+    def get_document(self, doc_id: str) -> JSONResponse:
+        return self.execute(partial(self._get, doc_id), SuccessConfig.DOCUMENT_FETCHED)
 
     def ingest(self, request: DocumentIngestRequest) -> JSONResponse:
         return self.execute(partial(self._ingest, request), SuccessConfig.DOCUMENTS_INGESTED)
@@ -57,6 +61,10 @@ class DocumentHandler(BaseHandler):
             ],
         )
         return data.model_dump(mode="json")
+
+    def _get(self, doc_id: str) -> dict[str, Any]:
+        document = self._helper.get_one(self.validate_identifier(doc_id, "doc_id"))
+        return DocumentOut.model_validate(document).model_dump(mode="json")
 
     def _ingest(self, request: DocumentIngestRequest) -> dict[str, Any]:
         ids = [item.doc_id for item in request.documents]

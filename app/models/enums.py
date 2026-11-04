@@ -25,6 +25,11 @@ class ApprovalDecision(str, Enum):
     NEEDS_CHANGES = "needs_changes"
 
 
+class RunStatus(str, Enum):
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class RunType(str, Enum):
     TRIAGE = "triage"
     DRAFT_REPLY = "draft_reply"

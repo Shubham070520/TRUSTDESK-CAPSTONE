@@ -6,6 +6,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.common.document_parser import ParsedDocument
+from app.common.exceptions import NotFoundError
 from app.helper.base import BaseHelper
 from app.models.base import TableNames
 from app.models.document import Document
@@ -155,6 +156,17 @@ class DocumentHelper(BaseHelper):
             if len(hits) == k:
                 break
         return hits
+
+    def get_many(self, doc_ids: list[str]) -> dict[str, Document]:
+        """Live documents by ``doc_id``. Ids that do not exist are left out."""
+        with self._guard():
+            return self._load_documents(doc_ids)
+
+    def get_one(self, doc_id: str) -> Document:
+        document = self.get_many([doc_id]).get(doc_id)
+        if document is None:
+            raise NotFoundError(details={"doc_id": doc_id})
+        return document
 
     # ---- internals --------------------------------------------------------
 

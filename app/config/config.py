@@ -29,6 +29,7 @@ class Config:
 
     BASE_DIR: ClassVar[Path] = Path(__file__).resolve().parent.parent.parent
     DATA_DIR: ClassVar[Path] = BASE_DIR / "data"
+    FRONTEND_PAGE: ClassVar[Path] = BASE_DIR / "app" / "static" / "index.html"
 
     PROVIDER_MOCK: ClassVar[str] = "mock"
     PROVIDER_GEMINI: ClassVar[str] = "gemini"
@@ -46,6 +47,8 @@ class Config:
     DEFAULT_SEARCH_K: ClassVar[int] = 5
     MAX_SEARCH_K: ClassVar[int] = 20
     MAX_QUERY_LENGTH: ClassVar[int] = 500
+    # Documents retrieved for one draft, before unsafe ones are dropped.
+    DRAFT_RETRIEVAL_K: ClassVar[int] = 5
 
     # Defaults for documents ingested through the API without these fields.
     DEFAULT_DOC_VERSION: ClassVar[str] = "unversioned"
@@ -53,6 +56,11 @@ class Config:
 
     # Fixed identity behind the demo token (full role-based access is out of scope).
     REVIEWER_ID: ClassVar[str] = "demo-reviewer"
+
+    # Model provider calls.
+    MODEL_TIMEOUT_SECONDS: ClassVar[float] = 20.0
+    # Largest goodwill coupon support may recommend (KB-COUPON-001). Larger needs a manager.
+    MAX_STANDARD_COUPON_INR: ClassVar[int] = 1000
 
     DEFAULT_HOST: ClassVar[str] = "127.0.0.1"
     DEFAULT_PORT: ClassVar[int] = 8000
@@ -66,16 +74,20 @@ class Config:
         db_path: str,
         model_provider: str,
         model_api_key: str = "",
+        model_name: str = "",
     ) -> None:
         provider = model_provider.strip().lower() or self.PROVIDER_MOCK
         if provider not in self.VALID_PROVIDERS:
             raise ValueError(
                 f"MODEL_PROVIDER must be one of {self.VALID_PROVIDERS}, got {model_provider!r}"
             )
+        if provider != self.PROVIDER_MOCK and not model_api_key.strip():
+            raise ValueError(f"MODEL_API_KEY is required when MODEL_PROVIDER is {provider!r}")
         self._token = token
         self._db_path = db_path
         self._model_provider = provider
         self._model_api_key = model_api_key
+        self._model_name = model_name.strip()
 
     @classmethod
     def load(cls) -> "Config":
@@ -84,6 +96,7 @@ class Config:
             db_path=EnvReader.get("TRUSTDESK_DB", str(cls.BASE_DIR / "trustdesk.db")),
             model_provider=EnvReader.get("MODEL_PROVIDER", cls.PROVIDER_MOCK),
             model_api_key=EnvReader.get("MODEL_API_KEY", ""),
+            model_name=EnvReader.get("MODEL_NAME", ""),
         )
 
     @property
@@ -101,6 +114,11 @@ class Config:
     @property
     def model_api_key(self) -> str:
         return self._model_api_key
+
+    @property
+    def model_name(self) -> str:
+        """Optional override of the provider's default model. Empty means use the default."""
+        return self._model_name
 
     @property
     def database_url(self) -> str:
