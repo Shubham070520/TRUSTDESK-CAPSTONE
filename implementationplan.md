@@ -12,12 +12,12 @@ How to use this file: work the steps in order. Tick each box as you finish it. D
 | Language / API | Python 3.12, FastAPI |
 | Architecture | 4-layer OOP: urls → handler → helper → models (see "Architecture rules") |
 | ORM / storage | SQLAlchemy 2.x ORM on SQLite; FTS5 virtual table for retrieval (BM25 keyword search) |
-| AI | `ModelAdapter` interface: `RuleBasedMockAdapter` (tests and evals), `LLMAdapter` (Gemini or Groq, optional) |
+| AI | `ModelAdapter` interface: `RuleBasedMockAdapter` (tests and evals), `LLMAdapter` (Gemini, Groq or OpenRouter, optional) |
 | Auth | Static bearer token, fixed reviewer id |
 | Frontend | One static HTML page, vanilla JS |
 | Tests | pytest + FastAPI TestClient |
 
-Environment variables: `TRUSTDESK_TOKEN`, `TRUSTDESK_DB`, `MODEL_PROVIDER` (`mock`, `gemini`, `groq`), `MODEL_API_KEY`.
+Environment variables: `TRUSTDESK_TOKEN`, `TRUSTDESK_DB`, `MODEL_PROVIDER` (`mock`, `gemini`, `groq`, `openrouter`), `MODEL_API_KEY`.
 
 ## Architecture rules (mandatory for all new code)
 
@@ -477,8 +477,23 @@ Notes: no new endpoint, no new error codes and no schema change. Known limits: n
 7. Open `tkt_9006` and `tkt_9007`; show refusal, flag, and escalation.
 8. Run the evals and show the summary and the three adversarial results.
 
+- [x] Walk the eight steps against a live server before recording.
 - [ ] Record the explainer video including at least one adversarial case.
 - [ ] Push to a public GitHub repository with the README, eval report and seeded data instructions.
+
+Added before the demo: `MODEL_PROVIDER=openrouter` (`OpenRouterProtocol`, default model `google/gemini-3.8-flash`). Groq and OpenRouter share `OpenAIChatProtocol`, so Groq requests are unchanged. Like the other hosted providers it is tested with a fake HTTP transport only. The Gemini default `gemini-2.0-flash` was shut down by Google on 2026-06-01, so `MODEL_PROVIDER=gemini` needs `MODEL_NAME` set.
+
+Demo walk: a scratch script started `uvicorn` on a freshly seeded database with the mock adapter and a random token, then ran the eight steps over HTTP with 30 checks. All passed:
+1. `tkt_9001` has `cus_1001` and `ord_5001`. Triage gives `refund`, `medium`, no escalation.
+2. The draft cites only `KB-REFUND-001` and recommends `create_replacement_order` with approval required. Its trace is a completed `draft_reply` run with retrieved documents, tool calls and guardrail results.
+3. Execute before approval is 409 `not_approved`. Approve records `demo-reviewer`; execute returns the replacement.
+4. The same request and execute again both come back `replayed: true` with the same action and result, and `replacement_orders` holds one row.
+5. `tkt_9006` and `tkt_9007` are flagged, refused, escalated, cite `KB-SECURITY-001` and get only `escalate_to_human`. The `tkt_9006` trace drops `KB-ADVERSARIAL-001` and blocks `issue_coupon`. `issue_coupon` at `POST /tool-actions` is 403, code 1011.
+6. `POST /eval-runs`: 8 of 8 cases, every metric 1.00, `eval_005` to `eval_007` safe. The server log has no errors.
+
+Secret check before publishing: the full history and the pending files were searched for the configured token and model key and for key-shaped strings. The only hits are the variable names and the fake test keys in `tests/test_guardrails.py` and `tests/test_adversarial.py`. No `.env` or database file is tracked.
+
+Known limits: the walk used the API, not the page; the page was last walked in a browser in Step 10. The walk used the mock adapter, whose results match the README; a hosted model may triage or word drafts differently.
 
 ---
 

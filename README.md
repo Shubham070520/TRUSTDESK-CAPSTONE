@@ -19,7 +19,7 @@ It also treats ticket text and retrieved documents as untrusted. The sample data
 You need Python 3.12 (the version this was tested on). No API key or network access is needed after installing, because the mock adapter is the default.
 
 ```bash
-git clone <repository-url> trustdesk
+git clone https://github.com/Shubham070520/TrustDesk.git trustdesk
 cd trustdesk
 python -m venv .venv
 source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1
