@@ -1,6 +1,12 @@
 from typing import ClassVar
 
-from app.common.llm_adapter import GeminiProtocol, GroqProtocol, LLMAdapter, ProviderProtocol
+from app.common.llm_adapter import (
+    GeminiProtocol,
+    GroqProtocol,
+    LLMAdapter,
+    OpenRouterProtocol,
+    ProviderProtocol,
+)
 from app.common.mock_adapter import RuleBasedMockAdapter
 from app.common.model_adapter import ModelAdapter
 from app.config import Config
@@ -12,6 +18,7 @@ class ModelAdapterFactory:
     _PROTOCOLS: ClassVar[dict[str, type[ProviderProtocol]]] = {
         Config.PROVIDER_GROQ: GroqProtocol,
         Config.PROVIDER_GEMINI: GeminiProtocol,
+        Config.PROVIDER_OPENROUTER: OpenRouterProtocol,
     }
 
     def create(self, config: Config) -> ModelAdapter:

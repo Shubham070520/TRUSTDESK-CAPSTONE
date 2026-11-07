@@ -7,7 +7,7 @@ import pytest
 from app import Application
 from app.common.enums import Sentiment, TicketCategory, TicketPriority
 from app.common.exceptions import ProviderError
-from app.common.llm_adapter import GeminiProtocol, GroqProtocol, LLMAdapter
+from app.common.llm_adapter import GeminiProtocol, GroqProtocol, LLMAdapter, OpenRouterProtocol
 from app.common.mock_adapter import RuleBasedMockAdapter
 from app.common.model_adapter import (
     CustomerContext,
@@ -99,7 +99,7 @@ class TestAdapterFactory:
         adapter = ModelAdapterFactory().create(Config("t", "x.db", "mock"))
         assert isinstance(adapter, RuleBasedMockAdapter)
 
-    @pytest.mark.parametrize("provider", ["groq", "gemini"])
+    @pytest.mark.parametrize("provider", ["groq", "gemini", "openrouter"])
     def test_hosted_providers(self, provider: str) -> None:
         adapter = ModelAdapterFactory().create(Config("t", "x.db", provider, "key-123"))
         assert isinstance(adapter, LLMAdapter)
@@ -170,6 +170,28 @@ class TestLLMAdapterGemini:
         assert body["generationConfig"]["temperature"] == 0
 
 
+class TestLLMAdapterOpenRouter:
+    def test_request_shape_and_reply(self) -> None:
+        provider = FakeProvider(groq_ok("routed hi"))
+        adapter = make(OpenRouterProtocol(), provider, model="google/gemini-3.6-flash")
+        assert adapter.complete("say hi") == "routed hi"
+
+        request = provider.requests[0]
+        assert str(request.url) == "https://openrouter.ai/api/v1/chat/completions"
+        assert request.headers["authorization"] == f"Bearer {API_KEY}"
+        assert API_KEY not in str(request.url)
+        body = json.loads(request.content)
+        assert body["model"] == "google/gemini-3.6-flash"
+        assert body["temperature"] == 0
+        assert body["messages"] == [{"role": "user", "content": "say hi"}]
+
+    def test_default_model_is_used_when_none_given(self) -> None:
+        provider = FakeProvider(groq_ok("ok"))
+        make(OpenRouterProtocol(), provider).complete("x")
+        body = json.loads(provider.requests[0].content)
+        assert body["model"] == OpenRouterProtocol.default_model == "google/gemini-3.8-flash"
+
+
 class TestLLMAdapterFailures:
     @staticmethod
     def _raise(exc: Exception) -> Callable[[httpx.Request], httpx.Response]:
@@ -178,7 +200,7 @@ class TestLLMAdapterFailures:
 
         return handler
 
-    @pytest.fixture(params=[GroqProtocol, GeminiProtocol])
+    @pytest.fixture(params=[GroqProtocol, GeminiProtocol, OpenRouterProtocol])
     def protocol(self, request: pytest.FixtureRequest) -> Any:
         return request.param()
 

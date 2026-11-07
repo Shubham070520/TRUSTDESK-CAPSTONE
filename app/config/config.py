@@ -34,10 +34,12 @@ class Config:
     PROVIDER_MOCK: ClassVar[str] = "mock"
     PROVIDER_GEMINI: ClassVar[str] = "gemini"
     PROVIDER_GROQ: ClassVar[str] = "groq"
+    PROVIDER_OPENROUTER: ClassVar[str] = "openrouter"
     VALID_PROVIDERS: ClassVar[tuple[str, ...]] = (
         PROVIDER_MOCK,
         PROVIDER_GEMINI,
         PROVIDER_GROQ,
+        PROVIDER_OPENROUTER,
     )
 
     DEFAULT_PAGE: ClassVar[int] = 1

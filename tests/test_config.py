@@ -24,7 +24,7 @@ class TestConfig:
         assert config.model_name == "my-model"
         assert config.token == "abc"
 
-    @pytest.mark.parametrize("provider", ["groq", "gemini"])
+    @pytest.mark.parametrize("provider", ["groq", "gemini", "openrouter"])
     def test_hosted_provider_requires_api_key(self, provider: str) -> None:
         for key in ("", "   "):
             with pytest.raises(ValueError, match="MODEL_API_KEY"):

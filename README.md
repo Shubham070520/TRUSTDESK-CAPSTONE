@@ -8,7 +8,7 @@ It also treats ticket text and retrieved documents as untrusted. The sample data
 |---|---|
 | API | Python 3.12, FastAPI |
 | Storage | SQLAlchemy 2.x on SQLite, with FTS5 for BM25 keyword search |
-| AI | `ModelAdapter` interface: a deterministic mock (the default), or Groq or Gemini |
+| AI | `ModelAdapter` interface: a deterministic mock (the default), or Groq, Gemini or OpenRouter |
 | Gated action | `create_replacement_order` |
 | Frontend | One static page, vanilla JS, no build step |
 
@@ -60,9 +60,9 @@ All are optional when using the mock adapter. `.env` is loaded automatically and
 |---|---|---|
 | `TRUSTDESK_TOKEN` | `demo-token` | Bearer token for the API. Change it if anyone else can reach the server. |
 | `TRUSTDESK_DB` | `trustdesk.db` in the repository root | SQLite file path. A relative path is resolved from the directory you start in. |
-| `MODEL_PROVIDER` | `mock` | `mock`, `groq` or `gemini`. |
-| `MODEL_API_KEY` | empty | Required for `groq` and `gemini`. The app refuses to start without it. |
-| `MODEL_NAME` | empty | Overrides the provider's default model (`llama-3.3-70b-versatile` for Groq, `gemini-2.0-flash` for Gemini). |
+| `MODEL_PROVIDER` | `mock` | `mock`, `groq`, `gemini` or `openrouter`. |
+| `MODEL_API_KEY` | empty | Required for `groq`, `gemini` and `openrouter`. The app refuses to start without it. |
+| `MODEL_NAME` | empty | Overrides the provider's default model (`llama-3.3-70b-versatile` for Groq, `gemini-2.0-flash` for Gemini, `google/gemini-3.8-flash` for OpenRouter). |
 | `TRUSTDESK_TABLE_PREFIX` | `td_` | Prefix for table names. Keep it the same between seeding and running. |
 
 ## Reproducing the demo
@@ -306,7 +306,7 @@ flowchart LR
     end
     Model --> DB[("SQLite<br>+ FTS5")]
     Helper --> Common["common/<br>ModelAdapter, GuardrailScanner"]
-    Common -.-> Provider["Groq or Gemini<br>(optional)"]
+    Common -.-> Provider["Groq, Gemini or OpenRouter<br>(optional)"]
 ```
 
 | Layer | Responsibility |
@@ -375,7 +375,7 @@ implementationplan.md   Step-by-step build record, including each step's decisio
 ## Known limitations
 
 **AI quality**
-- No real hosted model has been run. `LLMAdapter` has only been tested with a fake provider, so `MODEL_PROVIDER=groq` and `gemini` are unproven against the live services.
+- No real hosted model has been run. `LLMAdapter` has only been tested with a fake provider, so `MODEL_PROVIDER=groq`, `gemini` and `openrouter` are unproven against the live services.
 - The mock's triage is keyword based and English only. "Not damaged" counts as damage, and a reworded safety hazard is missed. With a hosted model, escalating a safety hazard in triage depends on the model's answer, although actions are still blocked by the code's own hazard check.
 - Guardrails are pattern based and English only. A paraphrase or non-English attack can pass. A sentence with a condition passes as hedged, as in "If you can wait, I will issue a coupon". The action layer does not rely on these scans.
 - Citation checks show a document was retrieved and safe, not that it supports each sentence.

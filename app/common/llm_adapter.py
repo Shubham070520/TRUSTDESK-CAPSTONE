@@ -40,10 +40,10 @@ class ProviderProtocol(ABC):
         """Pull the model's text out of the JSON reply. May raise KeyError, IndexError, TypeError."""
 
 
-class GroqProtocol(ProviderProtocol):
-    name = "groq"
-    default_model = "llama-3.3-70b-versatile"
-    _URL: ClassVar[str] = "https://api.groq.com/openai/v1/chat/completions"
+class OpenAIChatProtocol(ProviderProtocol):
+    """Any API that speaks the OpenAI chat-completions format. Subclasses set the URL."""
+
+    _URL: ClassVar[str]
 
     def build_request(self, prompt: str, model: str, api_key: str) -> ProviderRequest:
         return ProviderRequest(
@@ -58,6 +58,18 @@ class GroqProtocol(ProviderProtocol):
 
     def extract_text(self, payload: Any) -> str:
         return str(payload["choices"][0]["message"]["content"])
+
+
+class GroqProtocol(OpenAIChatProtocol):
+    name = "groq"
+    default_model = "llama-3.3-70b-versatile"
+    _URL = "https://api.groq.com/openai/v1/chat/completions"
+
+
+class OpenRouterProtocol(OpenAIChatProtocol):
+    name = "openrouter"
+    default_model = "google/gemini-3.8-flash"
+    _URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 class GeminiProtocol(ProviderProtocol):
@@ -80,7 +92,7 @@ class GeminiProtocol(ProviderProtocol):
 
 
 class LLMAdapter(ModelAdapter):
-    """Hosted-model backend (Groq or Gemini). Optional: tests and evals use the mock.
+    """Hosted-model backend (Groq, Gemini or OpenRouter). Optional: tests and evals use the mock.
 
     ``complete`` is the single place that touches the network. Every failure
     becomes ``ProviderError`` and never includes the API key, the prompt or
