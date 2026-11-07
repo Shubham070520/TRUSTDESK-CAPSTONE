@@ -493,6 +493,8 @@ Demo walk: a scratch script started `uvicorn` on a freshly seeded database with 
 
 Secret check before publishing: the full history and the pending files were searched for the configured token and model key and for key-shaped strings. The only hits are the variable names and the fake test keys in `tests/test_guardrails.py` and `tests/test_adversarial.py`. No `.env` or database file is tracked.
 
+Fresh clone (the check Step 11 left for the real repository): `git clone` of the committed history into an empty folder, a new virtualenv, `pip install -r requirements.txt`, `.env` copied from the example, then `python -m app.seed` (expected counts), `pytest -q` (889 passed) and `python -m app.evals` (exit 0). The regenerated `docs/EVAL_REPORT.md` differs from the committed one only in run id, timestamps and trace ids.
+
 Known limits: the walk used the API, not the page; the page was last walked in a browser in Step 10. The walk used the mock adapter, whose results match the README; a hosted model may triage or word drafts differently.
 
 ---
