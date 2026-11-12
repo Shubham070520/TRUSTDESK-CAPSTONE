@@ -13,3 +13,5 @@ trustdesk.db-shm
 .venv/
 
 ARCHITECTURE.md
+WALKTHROUGH_SCRIPT.md
+implementationplan.md
