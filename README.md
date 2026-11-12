@@ -62,12 +62,12 @@ All are optional when using the mock adapter. `.env` is loaded automatically and
 | `TRUSTDESK_DB` | `trustdesk.db` in the repository root | SQLite file path. A relative path is resolved from the directory you start in. |
 | `MODEL_PROVIDER` | `mock` | `mock`, `groq`, `gemini` or `openrouter`. |
 | `MODEL_API_KEY` | empty | Required for `groq`, `gemini` and `openrouter`. The app refuses to start without it. |
-| `MODEL_NAME` | empty | Overrides the provider's default model (`llama-3.3-70b-versatile` for Groq, `gemini-2.0-flash` for Gemini, `google/gemini-3.8-flash` for OpenRouter). |
+| `MODEL_NAME` | empty | Overrides the provider's default model (`llama-3.3-70b-versatile` for Groq, `gemini-2.0-flash` for Gemini, `google/gemini-3.8-flash` for OpenRouter). Google retired `gemini-2.0-flash` on 2026-06-01, so set this for `gemini`, for example `gemini-3.6-flash`. |
 | `TRUSTDESK_TABLE_PREFIX` | `td_` | Prefix for table names. Keep it the same between seeding and running. |
 
 ## Reproducing the demo
 
-Seed a clean database, start the server and open the page. Then:
+Seed a clean database, start the server with the mock adapter (the default) and open the page. A hosted model can make different choices: in one run `google/gemini-3.8-flash` triaged `tkt_9001` as `shipping`, so no replacement was recommended and the request in step 5 was refused with `category_not_allowed`. Then:
 
 1. Select `tkt_9001`.
 2. Click **Triage**: `refund`, `medium`, no escalation.
@@ -282,6 +282,22 @@ The command runs all eight cases in `data/eval_cases.jsonl`, stores the run, wri
 
 With the mock adapter, all 8 cases pass, every metric is 1.00 and all three adversarial cases are safe. The mock's rules were written with these eight tickets in view, so **this shows the pipeline and safety checks work, not that triage would be accurate on new tickets**. The report lists the known failure modes.
 
+One run with a hosted model, made over HTTP (`POST /eval-runs`) on 2026-11-08, so `docs/EVAL_REPORT.md` still shows the mock run:
+
+| Metric | mock | `openrouter`, `google/gemini-3.8-flash` |
+|---|---|---|
+| Cases passed | 8 of 8 | 2 of 8 |
+| Category accuracy | 1.00 | 0.75 |
+| Priority accuracy | 1.00 | 0.63 |
+| Triage accuracy | 1.00 | 0.50 |
+| Citation coverage | 1.00 | 1.00 |
+| Unsafe action block rate | 1.00 | 1.00 |
+| Allowed action recall | 1.00 | 0.86 |
+| Escalation accuracy | 1.00 | 1.00 |
+| Answer requirement coverage | 1.00 | 0.64 |
+
+The checks that code enforces held with the real model: no case recommended a disallowed action, every adversarial ticket was flagged and escalated with only `escalate_to_human`, and the vendor note never reached the model. The failures were triage choices (`tkt_9001` as `shipping`; `medium` instead of `high` for `tkt_9002` and `tkt_9008`) and answer requirements, whose keyword checks miss correct paraphrases. `eval_005` and `eval_006` count as unsafe only because of unmet answer requirements; the `tkt_9006` draft refused the coupon but did not tell the customer the instruction was flagged.
+
 ## Tests
 
 ```bash
@@ -350,6 +366,7 @@ run.py                  Server entry point
 app/                    Application (layers above)
 app/static/index.html   Reviewer page
 data/                   Seed data and knowledge base, unchanged from the capstone pack
+docs/ARCHITECTURE.md    High-level design and function-by-function request flows
 docs/EVAL_REPORT.md     Generated evaluation report
 docs/*.md               Capstone API, data model, evaluation and implementation guides
 scripts/                Optional utilities from the capstone pack; the app does not use them
@@ -375,7 +392,9 @@ implementationplan.md   Step-by-step build record, including each step's decisio
 ## Known limitations
 
 **AI quality**
-- No real hosted model has been run. `LLMAdapter` has only been tested with a fake provider, so `MODEL_PROVIDER=groq`, `gemini` and `openrouter` are unproven against the live services.
+- Hosted models are lightly tested. `openrouter` with `google/gemini-3.8-flash` has been run against the live service once (see [Evaluations](#evaluations)), and its answers varied between runs even at temperature 0: `tkt_9006` was triaged `general` in one run and `account_security` in the next. `groq` and `gemini` have only been tested with a fake provider.
+- With a hosted model, the triage category decides whether a replacement can be recommended or requested, so a wrong category blocks a valid replacement.
+- Answer requirement checks are keyword assertions written against the mock's wording. A correct paraphrase can fail them: "we are unable to process a refund" does not meet "do not approve refund".
 - The mock's triage is keyword based and English only. "Not damaged" counts as damage, and a reworded safety hazard is missed. With a hosted model, escalating a safety hazard in triage depends on the model's answer, although actions are still blocked by the code's own hazard check.
 - Guardrails are pattern based and English only. A paraphrase or non-English attack can pass. A sentence with a condition passes as hedged, as in "If you can wait, I will issue a coupon". The action layer does not rely on these scans.
 - Citation checks show a document was retrieved and safe, not that it supports each sentence.

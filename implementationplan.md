@@ -478,8 +478,8 @@ Notes: no new endpoint, no new error codes and no schema change. Known limits: n
 8. Run the evals and show the summary and the three adversarial results.
 
 - [x] Walk the eight steps against a live server before recording.
-- [ ] Record the explainer video including at least one adversarial case.
-- [ ] Push to a public GitHub repository with the README, eval report and seeded data instructions.
+- [x] Record the explainer video including at least one adversarial case.
+- [x] Push to a public GitHub repository with the README, eval report and seeded data instructions.
 
 Added before the demo: `MODEL_PROVIDER=openrouter` (`OpenRouterProtocol`, default model `google/gemini-3.8-flash`). Groq and OpenRouter share `OpenAIChatProtocol`, so Groq requests are unchanged. Like the other hosted providers it is tested with a fake HTTP transport only. The Gemini default `gemini-2.0-flash` was shut down by Google on 2026-06-01, so `MODEL_PROVIDER=gemini` needs `MODEL_NAME` set.
 

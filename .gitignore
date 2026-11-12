@@ -11,3 +11,5 @@ trustdesk.db
 trustdesk.db-wal
 trustdesk.db-shm
 .venv/
+
+ARCHITECTURE.md
