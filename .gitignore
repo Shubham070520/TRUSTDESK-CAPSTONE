@@ -1,0 +1,17 @@
+trustdesk_seed.db
+*.sqlite
+*.sqlite3
+__pycache__/
+.DS_Store
+
+.env
+trustdesk.db
+.pytest_cache/
+
+trustdesk.db-wal
+trustdesk.db-shm
+.venv/
+
+ARCHITECTURE.md
+WALKTHROUGH_SCRIPT.md
+implementationplan.md

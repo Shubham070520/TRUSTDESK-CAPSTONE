@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrustDesk Reviewer</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --text: #1b1f26;
+  --muted: #566070;
+  --border: #d5d9e0;
+  --accent: #1d4ed8;
+  --accent-text: #ffffff;
+  --ok-bg: #dcf5e4;
+  --ok-text: #14532d;
+  --warn-bg: #fdf0cf;
+  --warn-text: #713f12;
+  --bad-bg: #fde3e3;
+  --bad-text: #7f1d1d;
+  --info-bg: #e2eafc;
+  --info-text: #1e3a8a;
+  --radius: 6px;
+  --mono: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151a;
+    --surface: #1b1f26;
+    --surface-2: #252a33;
+    --text: #e7e9ed;
+    --muted: #a2abb8;
+    --border: #363c47;
+    --accent: #7ea2f7;
+    --accent-text: #0c1320;
+    --ok-bg: #143823;
+    --ok-text: #a7eec0;
+    --warn-bg: #3e2f0d;
+    --warn-text: #f8dc92;
+    --bad-bg: #451a1a;
+    --bad-text: #fbc0c0;
+    --info-bg: #1b2a52;
+    --info-text: #bcd0fb;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 17px; font-weight: 650; }
+h2 { font-size: 13px; font-weight: 650; letter-spacing: .02em; }
+h3 { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+header {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+  padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.token-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.layout {
+  display: grid; gap: 12px; padding: 12px 16px; align-items: start;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(0, 400px);
+}
+.column { display: grid; gap: 12px; min-width: 0; }
+.span-all { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 240px minmax(0, 1fr); }
+  .right { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .token-form { margin-left: 0; width: 100%; }
+  .token-form input { flex: 1; min-width: 0; }
+}
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; min-width: 0;
+}
+.card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.stack { display: grid; gap: 10px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+button, input, select { font: inherit; color: inherit; }
+button {
+  padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input, select {
+  padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); min-width: 0; max-width: 100%;
+}
+label.field { display: grid; gap: 2px; font-size: 12px; color: var(--muted); min-width: 0; }
+label.field input { color: var(--text); font-size: 13px; width: 100%; }
+.pill {
+  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 550;
+  background: var(--surface-2); color: var(--text); overflow-wrap: anywhere;
+}
+.pill.ok { background: var(--ok-bg); color: var(--ok-text); }
+.pill.warn { background: var(--warn-bg); color: var(--warn-text); }
+.pill.bad { background: var(--bad-bg); color: var(--bad-text); }
+.pill.info { background: var(--info-bg); color: var(--info-text); }
+.banner { padding: 7px 10px; border-radius: var(--radius); overflow-wrap: anywhere; }
+.banner.ok { background: var(--ok-bg); color: var(--ok-text); }
+.banner.warn { background: var(--warn-bg); color: var(--warn-text); }
+.banner.bad { background: var(--bad-bg); color: var(--bad-text); }
+.banner.info { background: var(--info-bg); color: var(--info-text); }
+.queue { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.queue button {
+  display: grid; gap: 3px; width: 100%; text-align: left; padding: 7px 9px;
+  background: transparent; border-color: transparent;
+}
+.queue button:hover { background: var(--surface-2); }
+.queue button[aria-current="true"] { background: var(--surface-2); border-color: var(--accent); }
+.queue .subject { overflow-wrap: anywhere; }
+.message {
+  white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px 10px; margin: 0;
+  background: var(--surface-2); border-radius: var(--radius);
+}
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 10px; margin: 0; }
+dt { color: var(--muted); font-size: 12px; }
+dd { margin: 0; overflow-wrap: anywhere; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+pre.json {
+  margin: 0; padding: 8px 10px; background: var(--surface-2); border-radius: var(--radius);
+  font: 12px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto;
+}
+code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+details summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; }
+td code { overflow-wrap: normal; white-space: nowrap; }
+.eval-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); }
+@media (max-width: 900px) { .eval-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>TrustDesk Reviewer</h1>
+  <span id="health" class="pill small">Checking server</span>
+  <form id="token-form" class="token-form" autocomplete="off">
+    <label for="token">API token</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Bearer token">
+    <button id="connect" type="submit" class="primary">Connect</button>
+    <span class="muted small">Kept in this page's memory only. Reloading clears it.</span>
+  </form>
+</header>
+<div id="global-message" role="status" aria-live="polite"></div>
+<main class="layout">
+  <section class="column" aria-labelledby="queue-title">
+    <div class="card">
+      <div class="card-head"><h2 id="queue-title">Ticket queue</h2><span id="queue-count" class="muted small"></span></div>
+      <div id="queue"></div>
+    </div>
+  </section>
+  <section class="column" id="center" aria-label="Selected ticket"></section>
+  <section class="column right" id="right" aria-label="Actions and trace"></section>
+  <section class="card span-all" aria-labelledby="eval-title">
+    <div class="card-head">
+      <h2 id="eval-title">Evaluation</h2>
+      <div class="row">
+        <span class="muted small">Runs all eight cases. With a hosted model this uses provider calls.</span>
+        <button id="run-evals" type="button">Run evals</button>
+      </div>
+    </div>
+    <div id="evals" aria-live="polite"></div>
+  </section>
+</main>
+<script>
+"use strict";
+
+// Ticket text, documents and model replies are untrusted. Nodes are built with
+// createElement and text nodes only, so nothing from the API is parsed as markup.
+class Dom {
+  static el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [name, value] of Object.entries(attrs)) {
+      if (value === undefined || value === null || value === false) continue;
+      if (name.startsWith("on")) node.addEventListener(name.slice(2), value);
+      else if (name === "value") node.value = value;
+      else node.setAttribute(name, value === true ? "" : String(value));
+    }
+    for (const child of children.flat()) {
+      if (child === undefined || child === null || child === false) continue;
+      node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    }
+    return node;
+  }
+
+  static pill(text, kind = "") {
+    return Dom.el("span", { class: `pill ${kind}`.trim() }, text);
+  }
+
+  static banner(text, kind) {
+    return Dom.el("div", { class: `banner ${kind}` }, text);
+  }
+
+  static facts(pairs) {
+    const rows = pairs.flatMap(([label, value]) => [
+      Dom.el("dt", {}, label),
+      Dom.el("dd", {}, value === null || value === undefined || value === "" ? "none" : value),
+    ]);
+    return Dom.el("dl", {}, rows);
+  }
+
+  static json(value) {
+    return Dom.el("pre", { class: "json" }, JSON.stringify(value, null, 2));
+  }
+}
+
+class ApiError extends Error {
+  constructor(message, status, code, data) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.data = data;
+  }
+
+  // A one-line reason for the reviewer, e.g. "... (not_approved, status: approval_required)".
+  describe() {
+    const data = this.data;
+    if (!data || typeof data !== "object" || Array.isArray(data)) return this.message;
+    const parts = [];
+    if (data.reason) parts.push(data.reason);
+    if (data.status) parts.push(`status: ${data.status}`);
+    if (data.error) parts.push(`error: ${data.error}`);
+    if (data.fields) parts.push(`fields: ${data.fields.join(", ")}`);
+    if (data.tool_name) parts.push(`tool: ${data.tool_name}`);
+    return parts.length ? `${this.message} (${parts.join(", ")})` : this.message;
+  }
+}
+
+class ApiClient {
+  #token = "";
+
+  setToken(token) {
+    this.#token = token;
+  }
+
+  async #call(method, path, body) {
+    const options = { method, headers: { Authorization: `Bearer ${this.#token}` } };
+    if (body !== undefined) {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
+    let response;
+    try {
+      response = await fetch(path, options);
+    } catch {
+      throw new ApiError("Could not reach the server", 0, null, null);
+    }
+    let envelope = null;
+    try {
+      envelope = await response.json();
+    } catch {
+      throw new ApiError(`The server returned an unreadable reply (HTTP ${response.status})`, response.status, null, null);
+    }
+    if (!response.ok || !envelope.success) {
+      throw new ApiError(envelope.message || "Request failed", response.status, envelope.error_code, envelope.data);
+    }
+    return envelope.data;
+  }
+
+  health() { return fetch("/health").then((r) => r.ok); }
+  listTickets() { return this.#call("GET", "/tickets?page=1&page_size=100"); }
+  getTicket(id) { return this.#call("GET", `/tickets/${encodeURIComponent(id)}`); }
+  triage(id) { return this.#call("POST", `/tickets/${encodeURIComponent(id)}/triage`); }
+  draft(id) { return this.#call("POST", `/tickets/${encodeURIComponent(id)}/draft-reply`); }
+  getDocument(id) { return this.#call("GET", `/documents/${encodeURIComponent(id)}`); }
+  getRun(id) { return this.#call("GET", `/agent-runs/${encodeURIComponent(id)}`); }
+  requestAction(body) { return this.#call("POST", "/tool-actions", body); }
+  decide(id, decision, reason) {
+    return this.#call("POST", `/tool-actions/${encodeURIComponent(id)}/approve`, { decision, reason });
+  }
+  execute(id) { return this.#call("POST", `/tool-actions/${encodeURIComponent(id)}/execute`); }
+  runEvals() { return this.#call("POST", "/eval-runs"); }
+}
+
+// Everything known about one ticket in this session. Lost on reload, with the token.
+class TicketState {
+  constructor(id) {
+    this.id = id;
+    this.detail = null;
+    this.triage = null;
+    this.draft = null;
+    this.action = null;
+    this.runs = [];
+    this.traceId = null;
+    this.trace = null;
+    this.document = null;
+    this.notice = null;
+    this.keyNumber = 1;
+    this.form = null;
+  }
+
+  addRun(id, label) {
+    if (id && !this.runs.some((run) => run.id === id)) this.runs.unshift({ id, label });
+  }
+
+  key() {
+    return `${this.id}-replacement-${this.keyNumber}`;
+  }
+}
+
+class App {
+  static TOOL = "create_replacement_order";
+  static DEFAULT_REASON = "Damaged on arrival";
+  static METRICS = [
+    ["category_accuracy", "Category accuracy"],
+    ["priority_accuracy", "Priority accuracy"],
+    ["triage_accuracy", "Triage accuracy"],
+    ["citation_coverage", "Citation coverage"],
+    ["unsafe_action_block_rate", "Unsafe action block rate"],
+    ["allowed_action_recall", "Allowed action recall"],
+    ["escalation_accuracy", "Escalation accuracy"],
+    ["answer_requirement_coverage", "Answer requirement coverage"],
+  ];
+
+  constructor(api) {
+    this.api = api;
+    this.connected = false;
+    this.tickets = [];
+    this.states = new Map();
+    this.selectedId = null;
+    this.busy = new Set();
+    this.evalRun = null;
+    this.evalError = null;
+    this.globalMessage = null;
+  }
+
+  start() {
+    document.getElementById("token-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      this.connect();
+    });
+    document.getElementById("run-evals").addEventListener("click", () => this.runEvals());
+    this.checkHealth();
+    this.render();
+  }
+
+  // ---- helpers ------------------------------------------------------------
+
+  get current() {
+    return this.selectedId ? this.states.get(this.selectedId) : null;
+  }
+
+  isBusy(name) {
+    return this.busy.has(name);
+  }
+
+  async withBusy(name, work) {
+    this.busy.add(name);
+    this.render();
+    try {
+      await work();
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      this.handleAuthLoss(error);
+    } finally {
+      this.busy.delete(name);
+      this.render();
+    }
+  }
+
+  handleAuthLoss(error) {
+    if (error.status === 401) {
+      this.connected = false;
+      this.globalMessage = { kind: "bad", text: "The server rejected this token. Check it and connect again." };
+    }
+  }
+
+  // Runs a call for one ticket and shows its outcome on that ticket's own panel,
+  // so a slow reply cannot land on a ticket the reviewer has since moved to.
+  async ticketCall(state, name, work, success) {
+    await this.withBusy(`${state.id}:${name}`, async () => {
+      try {
+        await work();
+        state.notice = success ? { kind: "ok", text: success() } : null;
+      } catch (error) {
+        if (error instanceof ApiError) state.notice = { kind: "bad", text: error.describe() };
+        throw error;
+      }
+    });
+  }
+
+  // ---- loading ------------------------------------------------------------
+
+  async checkHealth() {
+    const pill = document.getElementById("health");
+    const healthy = await this.api.health().catch(() => false);
+    pill.textContent = healthy ? "Server healthy" : "Server unavailable";
+    pill.className = `pill small ${healthy ? "ok" : "bad"}`;
+  }
+
+  async connect() {
+    this.api.setToken(document.getElementById("token").value.trim());
+    this.globalMessage = null;
+    await this.withBusy("connect", async () => {
+      await this.loadTickets();
+      this.connected = true;
+    });
+  }
+
+  async loadTickets() {
+    const data = await this.api.listTickets();
+    this.tickets = data.items;
+  }
+
+  async selectTicket(id) {
+    this.selectedId = id;
+    if (!this.states.has(id)) this.states.set(id, new TicketState(id));
+    const state = this.states.get(id);
+    if (state.detail) {
+      this.render();
+      return;
+    }
+    await this.ticketCall(state, "open", () => this.loadDetail(state));
+  }
+
+  async loadDetail(state) {
+    state.detail = await this.api.getTicket(state.id);
+    const { latest_triage: triage, latest_draft: draft } = state.detail;
+    if (triage && !state.triage) {
+      state.triage = { ...triage };
+      state.addRun(triage.run_id, "Triage");
+      if (triage.run_id) await this.showTrace(state, triage.run_id);
+      const input = state.trace?.guardrail_results?.input;
+      if (input) {
+        state.triage.guardrail_flagged = input.flagged;
+        state.triage.guardrail_reasons = input.reasons;
+      }
+    }
+    if (draft && !state.draft) state.draft = { ...draft, stored: true };
+    state.form = this.prefill(state);
+  }
+
+  prefill(state) {
+    const order = state.detail.order;
+    const items = order?.items ?? [];
+    const item = items.find((entry) => !entry.final_sale) ?? items[0];
+    // Fixed values only. The key must meet the same payload after a reload, or a retry
+    // would be a conflict rather than a replay.
+    return {
+      order_id: order?.order_id ?? "",
+      sku: item?.sku ?? "",
+      reason: App.DEFAULT_REASON,
+      idempotency_key: state.key(),
+      decisionReason: "",
+    };
+  }
+
+  async showTrace(state, runId) {
+    state.traceId = runId;
+    const trace = await this.api.getRun(runId);
+    if (state.traceId === runId) state.trace = trace;
+  }
+
+  // ---- ticket actions -----------------------------------------------------
+
+  runTriage(state) {
+    return this.ticketCall(state, "triage", async () => {
+      state.triage = await this.api.triage(state.id);
+      state.addRun(state.triage.run_id, "Triage");
+      await this.showTrace(state, state.triage.run_id);
+      await this.loadTickets();
+    });
+  }
+
+  runDraft(state) {
+    return this.ticketCall(state, "draft", async () => {
+      state.draft = await this.api.draft(state.id);
+      state.document = null;
+      state.addRun(state.draft.run_id, "Draft");
+      if (!state.triage) {
+        state.detail = await this.api.getTicket(state.id);
+        const triage = state.detail.latest_triage;
+        if (triage) {
+          state.triage = {
+            ...triage,
+            guardrail_flagged: state.draft.guardrail_flagged,
+            guardrail_reasons: state.draft.guardrail_reasons,
+          };
+          state.addRun(triage.run_id, "Triage");
+        }
+      }
+      await this.showTrace(state, state.draft.run_id);
+      await this.loadTickets();
+    });
+  }
+
+  openCitation(state, docId) {
+    return this.ticketCall(state, `doc:${docId}`, async () => {
+      state.document = await this.api.getDocument(docId);
+    });
+  }
+
+  requestAction(state) {
+    const form = state.form;
+    return this.ticketCall(
+      state,
+      "request",
+      async () => {
+        state.action = await this.api.requestAction({
+          ticket_id: state.id,
+          tool_name: App.TOOL,
+          payload: {
+            order_id: form.order_id,
+            sku: form.sku,
+            reason: form.reason,
+            idempotency_key: form.idempotency_key,
+          },
+        });
+        state.addRun(state.action.run_id, "Action requested");
+        if (state.action.run_id) await this.showTrace(state, state.action.run_id);
+      },
+      () => (state.action.replayed
+        ? "Same key and payload: the existing action came back and nothing new was created."
+        : "Action requested. It needs a human decision before it can run."),
+    );
+  }
+
+  decide(state, decision) {
+    return this.ticketCall(
+      state,
+      decision,
+      async () => {
+        state.action = await this.api.decide(state.action.action_id, decision, state.form.decisionReason);
+        state.addRun(state.action.run_id, `Action ${decision}`);
+        if (state.action.run_id) await this.showTrace(state, state.action.run_id);
+      },
+      () => (state.action.replayed ? "This decision was already recorded, so nothing changed." : `Decision recorded: ${decision}.`),
+    );
+  }
+
+  executeAction(state) {
+    return this.ticketCall(
+      state,
+      "execute",
+      async () => {
+        try {
+          state.action = await this.api.execute(state.action.action_id);
+        } catch (error) {
+          if (error instanceof ApiError && error.data?.action_id && error.data.status === "failed") {
+            state.action = { ...state.action, status: "failed", result: { error: error.data.error }, run_id: error.data.run_id };
+            state.addRun(error.data.run_id, "Action failed");
+          }
+          throw error;
+        }
+        state.addRun(state.action.run_id, "Action executed");
+        if (state.action.run_id) await this.showTrace(state, state.action.run_id);
+      },
+      () => (state.action.replayed
+        ? "Already executed: the stored result came back and no second replacement was created."
+        : "Executed. One replacement order was created."),
+    );
+  }
+
+  newKey(state) {
+    state.keyNumber += 1;
+    state.form.idempotency_key = state.key();
+    state.action = null;
+    state.notice = null;
+    this.render();
+  }
+
+  async runEvals() {
+    this.evalError = null;
+    await this.withBusy("evals", async () => {
+      try {
+        this.evalRun = await this.api.runEvals();
+      } catch (error) {
+        if (error instanceof ApiError) this.evalError = error.describe();
+        throw error;
+      }
+    });
+  }
+
+  // ---- rendering ----------------------------------------------------------
+
+  render() {
+    const focused = document.activeElement?.id;
+    this.renderGlobal();
+    this.renderQueue();
+    this.renderCenter();
+    this.renderRight();
+    this.renderEvals();
+    if (focused && document.activeElement?.id !== focused) document.getElementById(focused)?.focus();
+  }
+
+  renderGlobal() {
+    const box = document.getElementById("global-message");
+    box.replaceChildren(...(this.globalMessage ? [Dom.banner(this.globalMessage.text, this.globalMessage.kind)] : []));
+    document.getElementById("connect").disabled = this.isBusy("connect");
+    const button = document.getElementById("run-evals");
+    button.disabled = !this.connected || this.isBusy("evals");
+    button.textContent = this.isBusy("evals") ? "Running" : "Run evals";
+  }
+
+  priorityKind(priority) {
+    return { urgent: "bad", high: "warn", medium: "info" }[priority] ?? "";
+  }
+
+  renderQueue() {
+    const box = document.getElementById("queue");
+    document.getElementById("queue-count").textContent = this.connected ? `${this.tickets.length} tickets` : "";
+    if (!this.connected) {
+      box.replaceChildren(Dom.el("p", { class: "muted" }, "Enter the API token to load tickets."));
+      return;
+    }
+    if (!this.tickets.length) {
+      box.replaceChildren(Dom.el("p", { class: "muted" }, "No tickets. Load the data with python -m app.seed."));
+      return;
+    }
+    const items = this.tickets.map((ticket) => {
+      const triage = ticket.triage;
+      return Dom.el("li", {},
+        Dom.el("button", {
+          type: "button",
+          id: `queue-${ticket.ticket_id}`,
+          "aria-current": ticket.ticket_id === this.selectedId ? "true" : null,
+          onclick: () => this.selectTicket(ticket.ticket_id),
+        },
+          Dom.el("code", {}, ticket.ticket_id),
+          Dom.el("span", { class: "subject" }, ticket.subject),
+          Dom.el("span", { class: "row" },
+            triage ? Dom.pill(triage.category) : Dom.pill("not triaged"),
+            triage && Dom.pill(triage.priority, this.priorityKind(triage.priority)),
+            triage?.should_escalate && Dom.pill("escalated", "bad"),
+          ),
+        ));
+    });
+    box.replaceChildren(Dom.el("ul", { class: "queue" }, items));
+  }
+
+  renderCenter() {
+    const box = document.getElementById("center");
+    const state = this.current;
+    if (!state) {
+      box.replaceChildren(Dom.el("div", { class: "card muted" }, this.connected ? "Select a ticket." : "Connect to begin."));
+      return;
+    }
+    if (!state.detail) {
+      box.replaceChildren(Dom.el("div", { class: "card stack" },
+        state.notice ? Dom.banner(state.notice.text, state.notice.kind) : Dom.el("span", { class: "muted" }, "Loading ticket")));
+      return;
+    }
+    box.replaceChildren(this.ticketCard(state), this.triageCard(state), this.draftCard(state));
+  }
+
+  ticketCard(state) {
+    const { ticket, customer, order } = state.detail;
+    const items = order?.items ?? [];
+    return Dom.el("article", { class: "card stack" },
+      Dom.el("div", { class: "card-head" },
+        Dom.el("h2", {}, ticket.subject),
+        Dom.el("div", { class: "row" },
+          Dom.el("code", {}, ticket.ticket_id),
+          Dom.pill(ticket.channel),
+          Dom.pill(ticket.status),
+        ),
+      ),
+      state.notice && Dom.banner(state.notice.text, state.notice.kind),
+      Dom.el("div", {},
+        Dom.el("h3", {}, "Customer message (untrusted text)"),
+        Dom.el("p", { class: "message" }, ticket.body),
+        Dom.el("p", { class: "muted small" }, `Opened ${ticket.created_at}`),
+      ),
+      Dom.el("div", { class: "facts" },
+        Dom.el("div", {},
+          Dom.el("h3", {}, "Customer"),
+          Dom.facts([
+            ["Name", customer.name],
+            ["Email", customer.email],
+            ["Tier", customer.tier],
+            ["Verified", customer.verified ? "yes" : "no"],
+            ["Tags", customer.tags.join(", ")],
+          ]),
+        ),
+        Dom.el("div", {},
+          Dom.el("h3", {}, "Order"),
+          order
+            ? Dom.facts([
+                ["ID", order.order_id],
+                ["Status", order.status],
+                ["Delivered", order.delivered_at],
+                ["Return until", order.eligible_return_until],
+                ["Total", `${order.total} ${order.currency}`],
+                ["Payment", order.payment_status],
+                ["Tracking", order.tracking_number],
+                ["Items", items.map((i) => `${i.name} (${i.sku})${i.final_sale ? ", final sale" : ""}`).join("; ")],
+              ])
+            : Dom.el("p", { class: "muted" }, "No linked order."),
+        ),
+      ),
+    );
+  }
+
+  triageCard(state) {
+    const triage = state.triage;
+    const busy = this.isBusy(`${state.id}:triage`);
+    return Dom.el("section", { class: "card stack", "aria-label": "Triage" },
+      Dom.el("div", { class: "card-head" },
+        Dom.el("h2", {}, "Triage"),
+        Dom.el("button", { type: "button", id: "btn-triage", class: "primary", disabled: busy, onclick: () => this.runTriage(state) },
+          busy ? "Running" : triage ? "Triage again" : "Triage"),
+      ),
+      triage
+        ? [
+            Dom.el("div", { class: "row" },
+              Dom.pill(triage.category, "info"),
+              Dom.pill(`priority: ${triage.priority}`, this.priorityKind(triage.priority)),
+              Dom.pill(`sentiment: ${triage.sentiment}`),
+              triage.should_escalate ? Dom.pill("escalate to a human", "bad") : Dom.pill("no escalation", "ok"),
+            ),
+            Dom.el("p", {}, triage.reason_summary),
+            this.flags(triage.guardrail_flagged, triage.guardrail_reasons),
+          ]
+        : Dom.el("p", { class: "muted" }, "Not triaged yet."),
+    );
+  }
+
+  flags(flagged, reasons) {
+    if (!flagged) return null;
+    return Dom.el("div", { class: "banner bad" },
+      Dom.el("strong", {}, "Guardrail flagged this ticket: "),
+      (reasons ?? []).join(", "));
+  }
+
+  draftCard(state) {
+    const draft = state.draft;
+    const busy = this.isBusy(`${state.id}:draft`);
+    return Dom.el("section", { class: "card stack", "aria-label": "Draft reply" },
+      Dom.el("div", { class: "card-head" },
+        Dom.el("h2", {}, "Draft reply"),
+        Dom.el("button", { type: "button", id: "btn-draft", class: "primary", disabled: busy, onclick: () => this.runDraft(state) },
+          busy ? "Generating" : draft ? "Generate again" : "Generate draft"),
+      ),
+      draft ? this.draftBody(state, draft) : Dom.el("p", { class: "muted" }, "No draft yet."),
+    );
+  }
+
+  draftBody(state, draft) {
+    return [
+      draft.needs_escalation && Dom.banner("This ticket needs a human specialist. The reply is a holding draft for the reviewer.", "warn"),
+      this.flags(draft.guardrail_flagged, draft.guardrail_reasons),
+      Dom.el("p", { class: "message", id: "draft-body" }, draft.body),
+      Dom.el("div", {},
+        Dom.el("h3", {}, "Citations"),
+        draft.citations.length
+          ? Dom.el("div", { class: "row" }, draft.citations.map((docId) =>
+              Dom.el("button", {
+                type: "button",
+                class: "small",
+                id: `cite-${docId}`,
+                disabled: this.isBusy(`${state.id}:doc:${docId}`),
+                onclick: () => this.openCitation(state, docId),
+              }, docId)))
+          : Dom.el("p", { class: "muted" }, "None. The answer could not be confirmed from policy."),
+        state.document && Dom.el("div", { class: "banner info", id: "citation-detail" },
+          Dom.el("strong", {}, state.document.title),
+          ` (${state.document.doc_id}, version ${state.document.version}, for ${state.document.audience})`),
+      ),
+      Dom.el("div", {},
+        Dom.el("h3", {}, "Recommended actions"),
+        this.recommendations(draft),
+      ),
+      Dom.el("p", { class: "muted small" }, "Draft only. Nothing is sent to the customer from this page."),
+    ];
+  }
+
+  recommendations(draft) {
+    if (draft.stored) return Dom.el("p", { class: "muted" }, "This draft was stored earlier. Generate again to see recommendations.");
+    if (!draft.recommended_actions.length) return Dom.el("p", { class: "muted" }, "None.");
+    return Dom.el("ul", { class: "stack", style: "margin:0;padding-left:18px", id: "recommendations" }, draft.recommended_actions.map((action) =>
+      Dom.el("li", {},
+        Dom.el("code", {}, action.tool_name), " ",
+        action.requires_human_approval ? Dom.pill("needs approval", "warn") : Dom.pill("no approval needed"),
+        action.tool_name !== App.TOOL && " ",
+        action.tool_name !== App.TOOL && Dom.pill("not executable in this build"),
+        Dom.el("div", { class: "muted small" }, action.reason),
+      )));
+  }
+
+  renderRight() {
+    const box = document.getElementById("right");
+    const state = this.current;
+    if (!state?.detail) {
+      box.replaceChildren();
+      return;
+    }
+    box.replaceChildren(this.actionCard(state), this.traceCard(state));
+  }
+
+  actionCard(state) {
+    const form = state.form;
+    const action = state.action;
+    const recommended = state.draft?.recommended_actions?.some((a) => a.tool_name === App.TOOL);
+    const busyAny = ["request", "approved", "rejected", "execute"].some((name) => this.isBusy(`${state.id}:${name}`));
+    const input = (name, label) => Dom.el("label", { class: "field" }, label,
+      Dom.el("input", { id: `field-${name}`, value: form[name], oninput: (event) => { form[name] = event.target.value; } }));
+    return Dom.el("section", { class: "card stack", "aria-label": "Replacement action" },
+      Dom.el("div", { class: "card-head" },
+        Dom.el("h2", {}, "Replacement action"),
+        action ? Dom.el("span", { id: "action-status" }, Dom.pill(action.status, this.statusKind(action.status))) : Dom.pill("not requested"),
+      ),
+      Dom.el("p", { class: "muted small" },
+        state.draft && !state.draft.stored
+          ? (recommended ? "Recommended for this ticket." : "Not recommended for this ticket. The server checks every request.")
+          : "Generate a draft to see whether this is recommended. The server checks every request."),
+      Dom.el("div", { class: "form-grid" }, input("order_id", "Order"), input("sku", "SKU")),
+      input("reason", "Reason"),
+      input("idempotency_key", "Idempotency key"),
+      Dom.el("div", { class: "row" },
+        Dom.el("button", { type: "button", id: "btn-request", class: "primary", disabled: busyAny, onclick: () => this.requestAction(state) }, "Request replacement"),
+        Dom.el("button", { type: "button", id: "btn-new-key", disabled: busyAny, onclick: () => this.newKey(state) }, "New key"),
+      ),
+      action && Dom.el("div", { class: "stack" },
+        input("decisionReason", "Decision reason (optional)"),
+        Dom.el("div", { class: "row" },
+          Dom.el("button", { type: "button", id: "btn-approve", disabled: busyAny, onclick: () => this.decide(state, "approved") }, "Approve"),
+          Dom.el("button", { type: "button", id: "btn-reject", disabled: busyAny, onclick: () => this.decide(state, "rejected") }, "Reject"),
+          Dom.el("button", { type: "button", id: "btn-execute", disabled: busyAny, onclick: () => this.executeAction(state) }, "Execute"),
+        ),
+        action.approval && Dom.el("p", { class: "small" },
+          `Decision: ${action.approval.decision} by ${action.approval.reviewer_id}`,
+          action.approval.reason ? `. ${action.approval.reason}` : ""),
+        Dom.el("div", {},
+          Dom.el("h3", {}, "Result"),
+          Dom.el("div", { id: "action-result" }, Dom.json(action.result ?? "No result yet")),
+        ),
+      ),
+    );
+  }
+
+  statusKind(status) {
+    return { executed: "ok", approved: "info", approval_required: "warn", rejected: "bad", failed: "bad" }[status] ?? "";
+  }
+
+  traceCard(state) {
+    return Dom.el("section", { class: "card stack", "aria-label": "Trace" },
+      Dom.el("div", { class: "card-head" },
+        Dom.el("label", { for: "trace-select" }, Dom.el("h2", {}, "Trace")),
+        state.runs.length
+          ? Dom.el("select", {
+              id: "trace-select",
+              onchange: (event) => this.ticketCall(state, "trace", () => this.showTrace(state, event.target.value)),
+            }, state.runs.map((run) => Dom.el("option", {
+              value: run.id,
+              selected: run.id === state.traceId,
+            }, `${run.label} ${run.id.slice(0, 8)}`)))
+          : null,
+      ),
+      state.trace ? this.traceBody(state.trace) : Dom.el("p", { class: "muted" }, "Run triage or generate a draft to see a trace."),
+    );
+  }
+
+  traceBody(trace) {
+    const results = trace.guardrail_results ?? {};
+    const dropped = (results.documents?.dropped ?? []).map((entry) => entry.doc_id);
+    return Dom.el("div", { class: "stack", id: "trace-body" },
+      Dom.facts([
+        ["Run", trace.run_id],
+        ["Type", trace.run_type],
+        ["Status", trace.status],
+        ["Ticket", trace.ticket_id],
+      ]),
+      Dom.el("div", {},
+        Dom.el("h3", {}, "Retrieved documents"),
+        trace.retrieved_doc_ids.length
+          ? Dom.el("div", { class: "row" }, trace.retrieved_doc_ids.map((docId) =>
+              dropped.includes(docId) ? Dom.pill(`${docId} (dropped as unsafe)`, "bad") : Dom.pill(docId)))
+          : Dom.el("p", { class: "muted" }, "None."),
+      ),
+      Dom.el("div", {},
+        Dom.el("h3", {}, "Tool calls"),
+        trace.tool_calls.length ? this.toolCalls(trace.tool_calls) : Dom.el("p", { class: "muted" }, "None."),
+      ),
+      Dom.el("div", {},
+        Dom.el("h3", {}, "Guardrail result"),
+        Dom.el("div", { class: "row" },
+          results.input && (results.input.flagged ? Dom.pill("input flagged", "bad") : Dom.pill("input clean", "ok")),
+          results.output && (results.output.flagged ? Dom.pill("output blocked", "bad") : Dom.pill("output clean", "ok")),
+          results.draft?.rejected && Dom.pill(`draft rejected: ${results.draft.rejected}`, "bad"),
+        ),
+        Dom.el("details", {},
+          Dom.el("summary", {}, "Full guardrail record"),
+          Dom.json(results),
+        ),
+      ),
+    );
+  }
+
+  toolCalls(calls) {
+    const rows = calls.map((call) => Dom.el("tr", {},
+      Dom.el("td", {}, Dom.el("code", {}, call.tool_name)),
+      Dom.el("td", {}, call.event ?? call.status),
+      Dom.el("td", {}, call.reason ?? (call.actor ? `by ${call.actor}` : "")),
+    ));
+    return Dom.el("div", { class: "table-wrap" }, Dom.el("table", {},
+      Dom.el("thead", {}, Dom.el("tr", {}, Dom.el("th", {}, "Tool"), Dom.el("th", {}, "Outcome"), Dom.el("th", {}, "Detail"))),
+      Dom.el("tbody", {}, rows)));
+  }
+
+  renderEvals() {
+    const box = document.getElementById("evals");
+    if (this.isBusy("evals")) {
+      box.replaceChildren(Dom.el("p", { class: "muted" }, "Running the evaluation."));
+      return;
+    }
+    if (this.evalError) {
+      box.replaceChildren(Dom.banner(this.evalError, "bad"));
+      return;
+    }
+    const run = this.evalRun;
+    if (!run) {
+      box.replaceChildren(Dom.el("p", { class: "muted" }, this.connected ? "No run yet in this session." : "Connect to run evals."));
+      return;
+    }
+    const metrics = run.metrics;
+    const allPassed = metrics.passed_cases === run.total_cases;
+    box.replaceChildren(Dom.el("div", { class: "stack", id: "eval-results" },
+      Dom.el("div", { class: "row" },
+        Dom.pill(`${metrics.passed_cases} of ${run.total_cases} cases passed`, allPassed ? "ok" : "bad"),
+        Dom.pill(`adapter: ${metrics.model_adapter}`),
+        Dom.el("code", {}, run.eval_run_id),
+      ),
+      metrics.model_adapter === "mock" && Dom.el("p", { class: "muted small" },
+        "The mock's rules were written with these tickets in view, so these scores show the pipeline and safety checks work, not that triage would be accurate on new tickets."),
+      Dom.el("div", { class: "eval-grid" },
+        Dom.el("div", { class: "table-wrap" }, Dom.el("table", {},
+          Dom.el("thead", {}, Dom.el("tr", {}, Dom.el("th", {}, "Metric"), Dom.el("th", {}, "Score"))),
+          Dom.el("tbody", {}, App.METRICS.map(([key, label]) => Dom.el("tr", {},
+            Dom.el("td", {}, label),
+            Dom.el("td", { class: "num" }, metrics[key] === null ? "not measured" : metrics[key].toFixed(2))))),
+        )),
+        Dom.el("div", { class: "stack" },
+          Dom.el("div", {},
+            Dom.el("h3", {}, "Adversarial cases"),
+            Dom.el("div", { class: "table-wrap" }, Dom.el("table", { id: "eval-adversarial" },
+              Dom.el("thead", {}, Dom.el("tr", {}, ["Case", "Ticket", "Safe", "Flags", "Recommended", "Blocked"].map((h) => Dom.el("th", {}, h)))),
+              Dom.el("tbody", {}, metrics.adversarial_summary.map((entry) => Dom.el("tr", {},
+                Dom.el("td", {}, entry.case_id),
+                Dom.el("td", {}, entry.ticket_id),
+                Dom.el("td", {}, entry.safe ? Dom.pill("safe", "ok") : Dom.pill("not safe", "bad")),
+                Dom.el("td", {}, entry.guardrail_reasons.join(", ")),
+                Dom.el("td", {}, entry.recommended_actions.join(", ")),
+                Dom.el("td", {}, entry.blocked_actions.join(", ") || "none")))),
+            )),
+          ),
+          Dom.el("div", {},
+            Dom.el("h3", {}, "All cases"),
+            Dom.el("div", { class: "table-wrap" }, Dom.el("table", { id: "eval-cases" },
+              Dom.el("thead", {}, Dom.el("tr", {}, ["Case", "Ticket", "Result", "Category", "Priority", "Citations", "Recommended", "Notes"].map((h) => Dom.el("th", {}, h)))),
+              Dom.el("tbody", {}, run.case_results.map((result) => Dom.el("tr", {},
+                Dom.el("td", {}, result.case_id),
+                Dom.el("td", {}, result.ticket_id),
+                Dom.el("td", {}, result.passed ? Dom.pill("pass", "ok") : Dom.pill("fail", "bad")),
+                Dom.el("td", {}, result.predicted_category ?? "none"),
+                Dom.el("td", {}, result.predicted_priority ?? "none"),
+                Dom.el("td", {}, result.citations.join(", ") || "none"),
+                Dom.el("td", {}, result.recommended_actions.join(", ") || "none"),
+                Dom.el("td", {}, result.notes)))),
+            )),
+          ),
+        ),
+      ),
+    ));
+  }
+}
+
+new App(new ApiClient()).start();
+</script>
+</body>
+</html>
